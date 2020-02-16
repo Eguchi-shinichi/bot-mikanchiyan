@@ -1,6 +1,7 @@
 import requests
 import random
 import pickle
+import t
 
 
 def maomaotu(now_chat_id):
@@ -9,7 +10,7 @@ def maomaotu(now_chat_id):
             photo_ids = pickle.load(f)
         len_photo = len(photo_ids)
         i = random.randrange(len_photo)
-        url_photo = 'https://api.telegram.org/bot1014148462:AAGqG0IsGsy2o9-C276Bx7oQ_hWPeZMXOYQ/sendPhoto'
+        url_photo = 'https://api.telegram.org/' + t.token + '/sendPhoto'
         args_photo = {'chat_id': now_chat_id, 'photo': photo_ids[i]}
         r_photo = requests.post(url_photo, json=args_photo)
     except (IndexError, ValueError):
@@ -17,15 +18,15 @@ def maomaotu(now_chat_id):
 
 def send_cute_return(now_chat_id):
     try:
-        url_send_cute_return = 'https://api.telegram.org/bot1014148462:AAGqG0IsGsy2o9-C276Bx7oQ_hWPeZMXOYQ/sendMessage'
-        args_send_cute_return = {'chat_id':now_chat_id, 'text':'现在请发送仅一张猫猫图！'}
+        url_send_cute_return = 'https://api.telegram.org/' + t.token + '/sendMessage'
+        args_send_cute_return = {'chat_id': now_chat_id, 'text': '现在请发送仅一张猫猫图！'}
         r_send_cute_return = requests.post(url_send_cute_return, json=args_send_cute_return)
     except (IndexError, ValueError):
         pass
 
 def photo_return(now_chat_id):
     try:
-        url_photo_return = 'https://api.telegram.org/bot1014148462:AAGqG0IsGsy2o9-C276Bx7oQ_hWPeZMXOYQ/sendMessage'
+        url_photo_return = 'https://api.telegram.org/' + t.token + '/sendMessage'
         args_photo_return = {'chat_id': now_chat_id, 'text': '已经收到一张猫猫图！'}
         r_photo_return = requests.post(url_photo_return, json=args_photo_return)
     except (IndexError, ValueError):
@@ -37,7 +38,7 @@ if __name__ == '__main__':
     while True:
         with open('update_id.pickle', 'rb') as f_update_id:
             args_getUpdates = pickle.load(f_update_id)
-        url_getUpdates = 'https://api.telegram.org/bot1014148462:AAGqG0IsGsy2o9-C276Bx7oQ_hWPeZMXOYQ/getUpdates'
+        url_getUpdates = 'https://api.telegram.org/' + t.token + '/getUpdates'
         r_getUpdates = requests.post(url_getUpdates, json = args_getUpdates)
         data_getUpdates = r_getUpdates.json()
         print(data_getUpdates)
