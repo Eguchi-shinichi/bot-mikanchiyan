@@ -1,64 +1,73 @@
 import requests
-import random
-import pickle
 import t
+import re
+from influxdb import InfluxDBClient
+import sqlite3
 
-
-def maomaotu(now_chat_id):
-    try:
-        with open('photo_ids.pickle', 'rb') as f:
-            photo_ids = pickle.load(f)
-        len_photo = len(photo_ids)
-        i = random.randrange(len_photo)
-        url_photo = 'https://api.telegram.org/' + t.token + '/sendPhoto'
-        args_photo = {'chat_id': now_chat_id, 'photo': photo_ids[i]}
-        r_photo = requests.post(url_photo, json=args_photo)
-    except (IndexError, ValueError):
-        pass
 
 def send_cute_return(now_chat_id):
     try:
-        url_send_cute_return = 'https://api.telegram.org/' + t.token + '/sendMessage'
+        url_send_cute_return = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
         args_send_cute_return = {'chat_id': now_chat_id, 'text': '现在请发送仅一张猫猫图！'}
         r_send_cute_return = requests.post(url_send_cute_return, json=args_send_cute_return)
     except (IndexError, ValueError):
         pass
 
+
 def photo_return(now_chat_id):
     try:
-        url_photo_return = 'https://api.telegram.org/' + t.token + '/sendMessage'
+        url_photo_return = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
         args_photo_return = {'chat_id': now_chat_id, 'text': '已经收到一张猫猫图！'}
         r_photo_return = requests.post(url_photo_return, json=args_photo_return)
     except (IndexError, ValueError):
      pass
 
 
+def send_get(now_chat_id):
+    try:
+        url_send_get = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
+        client = InfluxDBClient('rpi', 8086, 'root', 'root', '温度传感器')
+        temperature = list(client.query('select last(temperature) from "温度传感器";')["温度传感器"])[0]['last']
+        pressure = list(client.query('select last(pressure) from "温度传感器";')["温度传感器"])[0]['last']
+        humidity = list(client.query('select last(humidity) from "温度传感器";')["温度传感器"])[0]['last']
+        print(temperature)
+        text = '温度：' + temperature + '\n' + '湿度：' + humidity +'\n' + '气压：' + pressure + '\n'
+        args_send_get = {'chat_id': now_chat_id, 'text': text}
+        r_send_get = requests.post(url_send_get, json=args_send_get)
+    except (ImportError, ValueError):
+        pass
+
+
+def maomaotu(now_chat_id):
+    try:
+        the_id = list(photo_ids0.execute('select photoid from photo_ids order by random() limit 1'))[0][0]
+        print(the_id)
+        url_photo = 'https://api.telegram.org/bot' + t.token + '/sendPhoto'
+        args_photo = {'chat_id': now_chat_id, 'photo': the_id}
+        r_photo = requests.post(url_photo, json=args_photo)
+    except (IndexError, ValueError):
+        pass
+
+
 if __name__ == '__main__':
 
+    photo_ids0 = sqlite3.connect('maomao.db', isolation_level=None)
+    try:
+        photo_ids0.execute('create table photo_ids(photoid)')
+    except sqlite3.OperationalError:
+        pass
+    now_update_id = 217220878
+    send_bool = False
+
     while True:
-        with open('update_id.pickle', 'rb') as f_update_id:
-            args_getUpdates = pickle.load(f_update_id)
-        url_getUpdates = 'https://api.telegram.org/' + t.token + '/getUpdates'
-        r_getUpdates = requests.post(url_getUpdates, json = args_getUpdates)
+        args_getUpdates = {'offset': now_update_id}
+        url_getUpdates = 'https://api.telegram.org/bot' + t.token + '/getUpdates'
+        r_getUpdates = requests.post(url_getUpdates, json=args_getUpdates)
         data_getUpdates = r_getUpdates.json()
         print(data_getUpdates)
 
         try:
             now_update_id = data_getUpdates['result'][0]['update_id']+1
-            args_getUpdates['offset'] = now_update_id
-            with open('update_id.pickle', 'wb') as f_update_id2:
-                pickle.dump(args_getUpdates, f_update_id2)
-        except (IndexError, KeyError):
-            pass
-
-        try:
-            now_chat_id = data_getUpdates['result'][0]['message']['from']['id']
-            with open('chat_ids.pickle', 'rb') as f_chat_ids:
-                chat_ids = pickle.load(f_chat_ids)
-            if now_chat_id not in chat_ids:
-                chat_ids.append(now_chat_id)
-                with open('chat_ids.pickle', 'wb') as f_chat_ids2:
-                    pickle.dump(chat_ids, f_chat_ids2)
         except (IndexError, KeyError):
             pass
 
@@ -66,38 +75,35 @@ if __name__ == '__main__':
             now_photo_id = data_getUpdates['result'][0]['message']['photo'][0]['file_id']
             now_chat_id = data_getUpdates['result'][0]['message']['from']['id']
 
-            with open('send_bool.pickle', 'rb') as f_send_bool:
-                send_bool = pickle.load(f_send_bool)
             if send_bool:
-                with open('photo_ids.pickle', 'rb') as f_photo_ids:
-                    photo_ids = pickle.load(f_photo_ids)
-                photo_ids.append(now_photo_id)
-                with open('photo_ids.pickle', 'wb') as f_photo_ids2:
-                    pickle.dump(photo_ids, f_photo_ids2)
-                with open('send_bool.pickle', 'wb') as f_send_bool4:
-                    send_bool = False
-                    pickle.dump(send_bool, f_send_bool4)
+                photo_ids0.execute('insert into photo_ids(photoid) values (?)', (now_photo_id,))
+                send_bool = False
                 photo_return(now_chat_id)
         except (IndexError, KeyError):
             pass
 
         try:
+            r_cute = r'.*?/cute'
+            r_send_cute = r'.*?/send_cute'
+            r_get = r'.*?/get'
             now_text = data_getUpdates['result'][0]['message']['text']
             now_chat_id = data_getUpdates['result'][0]['message']['from']['id']
-            if (now_text[-5:] == '/cute') or ('/cute ' in now_text):
+            re_cute = re.match(r_cute, now_text)
+            re_send_cute = re.match(r_send_cute, now_text)
+            re_get = re.match(r_get, now_text)
+
+            if re_get:
+                send_get(now_chat_id)
+
+            if re_cute:
                 maomaotu(now_chat_id)
 
-            if (now_text[-10:] == '/send_cute') or ('/send_cute ' in now_text):
-                with open('send_bool.pickle', 'wb') as f_send_bool2:
-                    send_bool = True
-                    pickle.dump(send_bool, f_send_bool2)
+            if re_send_cute:
+                send_bool = True
                 send_cute_return(now_chat_id)
 
-
             else:
-                with open('send_bool.pickle', 'wb') as f_send_bool3:
-                    send_bool = False
-                    pickle.dump(send_bool, f_send_bool3)
+                send_bool = False
         except (IndexError, KeyError):
             pass
 
