@@ -9,8 +9,8 @@ def send_cute_return(now_chat_id):
     try:
         url_send_cute_return = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
         args_send_cute_return = {'chat_id': now_chat_id, 'text': '现在请发送仅一张猫猫图！'}
-        r_send_cute_return = requests.post(url_send_cute_return, json=args_send_cute_return)
-    except (IndexError, ValueError):
+        r_send_cute_return = requests.post(url_send_cute_return, json=args_send_cute_return, timeout=1)
+    except (IndexError, ValueError, TimeoutError):
         pass
 
 
@@ -18,23 +18,23 @@ def photo_return(now_chat_id):
     try:
         url_photo_return = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
         args_photo_return = {'chat_id': now_chat_id, 'text': '已经收到一张猫猫图！'}
-        r_photo_return = requests.post(url_photo_return, json=args_photo_return)
-    except (IndexError, ValueError):
+        r_photo_return = requests.post(url_photo_return, json=args_photo_return, timeout=1)
+    except (IndexError, ValueError, TimeoutError):
      pass
 
 
 def send_get(now_chat_id):
     try:
         url_send_get = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
-        client = InfluxDBClient('rpi', 8086, 'root', 'root', '温度传感器')
+        client = InfluxDBClient('localhost', 18086, 'admin', '44C99p6WhhEdxi', '温度传感器')
         temperature = list(client.query('select last(temperature) from "温度传感器";')["温度传感器"])[0]['last']
         pressure = list(client.query('select last(pressure) from "温度传感器";')["温度传感器"])[0]['last']
         humidity = list(client.query('select last(humidity) from "温度传感器";')["温度传感器"])[0]['last']
         print(temperature)
         text = '温度：' + temperature + '\n' + '湿度：' + humidity +'\n' + '气压：' + pressure + '\n'
         args_send_get = {'chat_id': now_chat_id, 'text': text}
-        r_send_get = requests.post(url_send_get, json=args_send_get)
-    except (ImportError, ValueError):
+        r_send_get = requests.post(url_send_get, json=args_send_get, timeout=1)
+    except (ImportError, ValueError, TimeoutError):
         pass
 
 
@@ -44,10 +44,9 @@ def maomaotu(now_chat_id):
         print(the_id)
         url_photo = 'https://api.telegram.org/bot' + t.token + '/sendPhoto'
         args_photo = {'chat_id': now_chat_id, 'photo': the_id}
-        r_photo = requests.post(url_photo, json=args_photo)
-    except (IndexError, ValueError):
+        r_photo = requests.post(url_photo, json=args_photo, timeout=1)
+    except (IndexError, ValueError, TimeoutError):
         pass
-
 
 if __name__ == '__main__':
 
@@ -62,8 +61,11 @@ if __name__ == '__main__':
     while True:
         args_getUpdates = {'offset': now_update_id}
         url_getUpdates = 'https://api.telegram.org/bot' + t.token + '/getUpdates'
-        r_getUpdates = requests.post(url_getUpdates, json=args_getUpdates)
-        data_getUpdates = r_getUpdates.json()
+        try:
+            r_getUpdates = requests.post(url_getUpdates, json=args_getUpdates, timeout=1)
+            data_getUpdates = r_getUpdates.json()
+        except (IndexError, ValueError, TimeoutError):
+            continue
         print(data_getUpdates)
 
         try:
