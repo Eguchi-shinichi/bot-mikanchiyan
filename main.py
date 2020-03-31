@@ -3,13 +3,14 @@ import t
 import re
 from influxdb import InfluxDBClient
 import sqlite3
+import datetime
 
 
 def send_cute_return(now_chat_id):
     try:
         url_send_cute_return = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
         args_send_cute_return = {'chat_id': now_chat_id, 'text': '现在请发送仅一张猫猫图！'}
-        r_send_cute_return = requests.post(url_send_cute_return, json=args_send_cute_return, timeout=1)
+        r_send_cute_return = requests.post(url_send_cute_return, json=args_send_cute_return, timeout=10)
     except (IndexError, ValueError, TimeoutError):
         pass
 
@@ -18,23 +19,33 @@ def photo_return(now_chat_id):
     try:
         url_photo_return = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
         args_photo_return = {'chat_id': now_chat_id, 'text': '已经收到一张猫猫图！'}
-        r_photo_return = requests.post(url_photo_return, json=args_photo_return, timeout=1)
+        r_photo_return = requests.post(url_photo_return, json=args_photo_return, timeout=10)
     except (IndexError, ValueError, TimeoutError):
      pass
 
 
 def send_get(now_chat_id):
+    print(1)
     try:
+        print(2)
         url_send_get = 'https://api.telegram.org/bot' + t.token + '/sendMessage'
-        client = InfluxDBClient('localhost', 18086, 'admin', '44C99p6WhhEdxi', '温度传感器')
+        client = InfluxDBClient(t.utl, 18086, t.username, t.key, '温度传感器')
         temperature = list(client.query('select last(temperature) from "温度传感器";')["温度传感器"])[0]['last']
         pressure = list(client.query('select last(pressure) from "温度传感器";')["温度传感器"])[0]['last']
         humidity = list(client.query('select last(humidity) from "温度传感器";')["温度传感器"])[0]['last']
-        print(temperature)
-        text = '温度：' + temperature + '\n' + '湿度：' + humidity +'\n' + '气压：' + pressure + '\n'
+        time = list(client.query('select last(temperature) from "温度传感器";')["温度传感器"])[0]['time']
+        r_time = r'([0-9]{4}?-[0-9]{2}?-[0-9]{2}?T[0-9]{2}?:[0-9]{2}?:[0-9]{2})?.'
+        re_time = re.match(r_time, time)
+        time_g = re_time.group(1)
+        utc_format = "%Y-%m-%dT%H:%M:%S"
+        utcTime = datetime.datetime.strptime(time_g, utc_format)
+        localtime = utcTime + datetime.timedelta(hours=8)
+        localtime = str(localtime)
+        text = '温度: ' + temperature + '\n' + '湿度: ' + humidity + '\n' + '气压: ' + pressure + '\n' + '时间: ' + localtime
         args_send_get = {'chat_id': now_chat_id, 'text': text}
-        r_send_get = requests.post(url_send_get, json=args_send_get, timeout=1)
+        r_send_get = requests.post(url_send_get, json=args_send_get, timeout=10)
     except (ImportError, ValueError, TimeoutError):
+        print(3)
         pass
 
 
@@ -44,7 +55,7 @@ def maomaotu(now_chat_id):
         print(the_id)
         url_photo = 'https://api.telegram.org/bot' + t.token + '/sendPhoto'
         args_photo = {'chat_id': now_chat_id, 'photo': the_id}
-        r_photo = requests.post(url_photo, json=args_photo, timeout=1)
+        r_photo = requests.post(url_photo, json=args_photo, timeout=10)
     except (IndexError, ValueError, TimeoutError):
         pass
 
@@ -62,7 +73,7 @@ if __name__ == '__main__':
         args_getUpdates = {'offset': now_update_id}
         url_getUpdates = 'https://api.telegram.org/bot' + t.token + '/getUpdates'
         try:
-            r_getUpdates = requests.post(url_getUpdates, json=args_getUpdates, timeout=1)
+            r_getUpdates = requests.post(url_getUpdates, json=args_getUpdates, timeout=10)
             data_getUpdates = r_getUpdates.json()
         except (IndexError, ValueError, TimeoutError):
             continue
